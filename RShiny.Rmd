@@ -1,0 +1,516 @@
+---
+title: "Tech Mental Health R Shiny Project"
+author: "Van Vu"
+date: "9/18/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Load Data
+```{r load_data, cache=TRUE, warning=FALSE, message=FALSE}
+
+tech.health2016 <- read.csv("Tech_Mental_Health2016.csv")
+tech.health2016
+
+```
+# Load Libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(stringr)
+library(scales)
+library(RColorBrewer)
+```
+# Clean Data
+```{r}
+# rename columns and select relevant columns
+tech.health2016 <-
+  tech.health2016 %>% select(.,
+    self_employed = Are.you.self.employed.,
+    no_employees = How.many.employees.does.your.company.or.organization.have.,
+    tech_company = Is.your.employer.primarily.a.tech.company.organization.,
+    tech_role = Is.your.primary.role.within.your.company.related.to.tech.IT.,
+    mental_health_benefits = Does.your.employer.provide.mental.health.benefits.as.part.of.healthcare.coverage.,
+    mental_discussed = Has.your.employer.ever.formally.discussed.mental.health..for.example..as.part.of.a.wellness.campaign.or.other.official.communication..,
+    resources = Does.your.employer.offer.resources.to.learn.more.about.mental.health.concerns.and.options.for.seeking.help.,
+    anonymity = Is.your.anonymity.protected.if.you.choose.to.take.advantage.of.mental.health.or.substance.abuse.treatment.resources.provided.by.your.employer.,
+    leave = If.a.mental.health.issue.prompted.you.to.request.a.medical.leave.from.work..asking.for.that.leave.would.be.,
+    mental_health_consequence = Do.you.think.that.discussing.a.mental.health.disorder.with.your.employer.would.have.negative.consequences.,
+    physical_health_consequence = Do.you.think.that.discussing.a.physical.health.issue.with.your.employer.would.have.negative.consequences.,
+    coworkers = Would.you.feel.comfortable.discussing.a.mental.health.disorder.with.your.coworkers.,
+    supervisors = Would.you.feel.comfortable.discussing.a.mental.health.disorder.with.your.direct.supervisor.s..,
+    mental_vs_physical = Do.you.feel.that.your.employer.takes.mental.health.as.seriously.as.physical.health.,
+    physical_interview = Would.you.be.willing.to.bring.up.a.physical.health.issue.with.a.potential.employer.in.an.interview.,
+    mental_interview = Would.you.bring.up.a.mental.health.issue.with.a.potential.employer.in.an.interview.,
+    mental_hurt_career = Do.you.feel.that.being.identified.as.a.person.with.a.mental.health.issue.would.hurt.your.career.,
+    mental_coworkers_view = Do.you.think.that.team.members.co.workers.would.view.you.more.negatively.if.they.knew.you.suffered.from.a.mental.health.issue.,
+    share_family_friends = How.willing.would.you.be.to.share.with.friends.and.family.that.you.have.a.mental.illness.,
+    family_history = Do.you.have.a.family.history.of.mental.illness.,
+    mental_past = Have.you.had.a.mental.health.disorder.in.the.past.,
+    mental_current = Do.you.currently.have.a.mental.health.disorder.,
+    mental_diagnosed = Have.you.been.diagnosed.with.a.mental.health.condition.by.a.medical.professional.,
+    sought_treatment = Have.you.ever.sought.treatment.for.a.mental.health.issue.from.a.mental.health.professional.,
+    interfere_treated = If.you.have.a.mental.health.issue..do.you.feel.that.it.interferes.with.your.work.when.being.treated.effectively.,
+    interfere_not_treated = If.you.have.a.mental.health.issue..do.you.feel.that.it.interferes.with.your.work.when.NOT.being.treated.effectively.,
+    age = What.is.your.age.,
+    gender = What.is.your.gender.,
+    country = What.country.do.you.work.in.,
+    state = What.US.state.or.territory.do.you.work.in.,
+    work_position = Which.of.the.following.best.describes.your.work.position.,
+    remote = Do.you.work.remotely.
+  )
+
+head(tech.health2016)
+tech.health <- tech.health2016
+
+tech.health
+# Are there any NULL or NA in the following survey questions needed
+# for tech industry assessment 
+sum(is.na(tech.health$mental_vs_physical))
+sum(is.na(tech.health$mental_health_benefits))
+sum(is.na(tech.health$mental_discussed))
+sum(is.na(tech.health$anonymity))
+sum(is.na(tech.health$resources))
+
+sum(is.null(tech.health$mental_vs_physical))
+sum(is.null(tech.health$mental_health_benefits))
+sum(is.null(tech.health$mental_discussed))
+sum(is.null(tech.health$anonymity))
+sum(is.null(tech.health$resources))
+
+
+
+# Change first letter to upper in gender
+tech.health$gender <- str_to_title(tech.health$gender)
+
+# Relabel gender for consistency
+tech.health <- tech.health %>%
+  mutate(.,
+    gender = case_when(
+      gender == "Female" ~ "Female",
+      gender == "F" ~ "Female",
+      gender == "Cis Female" ~ "Female",
+      gender == "Female Cis" ~ "Female",
+      gender == "Women" ~ "Female",
+      gender == "Male" ~ "Male",
+      gender == "M" ~ "Male",
+      gender == "Cis Male" ~ "Male",
+      gender == "Male Cis" ~ "Male",
+      gender == "Man" ~ "Male",
+      TRUE ~ "Other"
+    )
+  )
+
+
+tech.health <- tech.health %>% 
+  mutate(.,
+         mental_vs_physical = ifelse(mental_vs_physical=='', 'No Response', mental_vs_physical),
+         mental_health_benefits = ifelse(mental_health_benefits=='', 'No Response', mental_health_benefits),
+         mental_discussed = ifelse(mental_discussed=='', 'No Response', mental_discussed),
+         resources = ifelse(resources =='', 'No Response', resources),
+         anonymity = ifelse(anonymity=='', 'No Response', anonymity),
+         mental_diagnosed = ifelse(mental_diagnosed=='', 'No Response', mental_diagnosed),      
+         mental_past = ifelse(mental_past=='', 'No Response', mental_past),   
+         mental_current = ifelse(mental_current=='', 'No Response', mental_current),
+         mental_health_consequence = ifelse(mental_health_consequence=='', 'No Response', mental_health_consequence),
+         physical_health_consequence = ifelse(physical_health_consequence=='', 'No Response', physical_health_consequence),
+         coworkers = ifelse(coworkers=='', 'No Response', coworkers),
+         supervisors = ifelse(supervisors=='', 'No Response', supervisors),
+         no_employees = ifelse(no_employees=='', 'No Response', no_employees),
+         age_group = ifelse(age_group=='', 'No Response', age_group))
+
+tech.health$gender
+tech.health <- tech.health %>%
+  mutate(.,
+    self_employed = case_when(
+      self_employed == 1 ~ "Yes",
+      self_employed == 0 ~ "No",
+    ),
+    tech_company = case_when(
+      tech_company == 1 ~ "Yes",
+      tech_company == 0 ~ "No",
+    ),
+    sought_treatment = case_when(
+      sought_treatment == 1 ~ "Yes",
+      sought_treatment == 0 ~ "No"
+    )
+  )
+
+tech.health <- tech.health %>% 
+  mutate(., 
+         age_group = case_when(
+           (age >= 14 & age < 18) ~ "14-17",
+           (age >= 18 & age < 25) ~ "18-24",
+           (age >= 25 & age < 35) ~ "25-34",
+           (age >= 35 & age < 45) ~ "35-44",
+           (age >= 45 & age < 55) ~ "45-54",
+           (age >= 55 & age < 65) ~ "55-65",
+           TRUE ~ "65 or older")
+  )
+
+write.csv(tech.health, "Tech_Mental_Health2016_processed.csv")
+
+tech.health <- read.csv("Tech_Mental_Health2016_processed.csv")
+head(tech.health)
+
+
+
+```
+
+```{r}
+# Graphs about the surveyees
+ggplot(., aes(x=gender, fill=gender)) + 
+  geom_bar(aes(fill = gender)) + 
+  scale_fill_manual(values=c("#FF9966", "#339999", "#003366")) +
+  theme_bw() +
+  xlab("Gender") +
+  ylab("Number of Participants") +
+  ggtitle(("Gender of Survey Participants"))
+
+
+
+#display.brewer.all()
+```
+
+```{r}
+
+# ggplot(data = tech.health, aes(x='', fill=gender)) + 
+#   geom_bar(position = "fill") +
+#   scale_fill_manual(values=c("#FF9933", "#339999", "#003366")) +
+#   coord_polar(theta = "y", start = 0) +  
+#   ggtitle(("Gender of Surveyees"))
+
+gender.df <- tech.health %>% group_by(., gender) %>% count(.,)
+gender.df$per <- round(gender.df$n/sum(gender.df$n),2)
+gender.df$ymax <- cumsum(gender.df$per)
+gender.df$ymin <- c(0, head(gender.df$ymax, n=-1))
+gender.df$labelPosition <- (gender.df$ymax + gender.df$ymin) / 2
+gender.df$label <- paste0(gender.df$gender, "\n", percent(gender.df$per))
+
+ggplot(data = gender.df, aes(ymax=ymax, ymin=ymin, xmax=4, xmin=3, fill = gender)) +
+  geom_rect() +
+  geom_text(x = 3.5, aes(y = labelPosition, label = label), size=4.5) +
+  scale_fill_manual(values = c("#FF9966", "#339999", "#99CCFF")) +
+  coord_polar(theta = "y") +
+  xlim(c(2,4)) +
+  theme_void() +
+  theme(legend.position = "none") +
+  ggtitle("Gender of Survey Participants")
+
+
+```
+
+```{r}
+
+ggplot(data = tech.health, aes(x = age)) + geom_histogram(binwidth = 2) + coord_cartesian(xlim = c(0, 350))
+```
+```{r}
+# Filter age outliers
+# Earliest legal age to work in some countries is 14
+tech.health <- tech.health %>% filter(., age >= 14 & age <= 80 )
+ggplot(data = tech.health, aes(x = age)) + geom_histogram(binwidth = 2) + coord_cartesian(xlim = c(0, 100))
+
+ggplot(data = tech.health, aes(x = age, fill=gender)) + 
+  geom_histogram(binwidth = 2, position = "identity") + 
+  coord_cartesian(xlim = c(0, 100)) + facet_wrap(~gender) +
+  scale_fill_manual(values=c("#FF9966", "#339999", "#003366"))
+```
+```{r}
+
+ggplot(data = tech.health, aes(x = age)) + geom_histogram(binwidth = 2) + coord_cartesian(xlim = c(0, 100)) +  ggtitle(("Age Distribution"))
+
+ggplot(data = tech.health, aes(y = age, color = gender)) + 
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0, 80)) +  
+  scale_color_manual(values=c("#FF9966", "#339999", "#003366")) +
+  ggtitle(("Age Distribution"))
+
+```
+```{r}
+# Tech companies only
+dim(tech.health)
+# tech.health %>% filter(., tech_company == 1) 883 rows vs 1400 rows if not filtered
+
+# Country represenation
+# A lot of the countries have only 1 surveyee 
+# Select only countries that have at least 30 surveyees
+tech.health %>% 
+  group_by(., country) %>% 
+  summarise(.,representation = n()) %>% 
+  filter(., representation >= 30) %>% 
+  ggplot(., aes(x=reorder(country, -representation), y=representation)) +
+  geom_bar(aes(fill=country), stat='identity') + 
+  scale_fill_brewer(palette = "Blues") +
+  xlab("Country") +
+  ylab("Number of Respondents")
+  ggtitle("Country Representation")
+
+```
+```{r}
+# Surveyees from the U.S.
+# Surveyees from Each State
+tech.health %>% 
+  filter(., country == "United States of America") %>% 
+  group_by(., state) %>% 
+  summarise(., no_surveyees = n()) %>% 
+  filter(.,no_surveyees >= 30) %>% 
+  ggplot(., aes(x=no_surveyees, y=reorder(state, -no_surveyees))) + 
+  geom_bar(aes(fill=state), stat = 'identity') + 
+  scale_fill_brewer(palette = "Blues") +
+  ggtitle("Participants From Each State")
+```
+```{r}
+library(maps)
+library(ggplot2)
+map <- map_data('state')
+tech.health %>% 
+  filter(., country == "United States of America" & (mental_past == "Yes" | mental_current == "Yes" | mental_diagnosed == "Yes")) %>% 
+  group_by(., state) %>% 
+  summarise(., no_surveyees = n()) %>% 
+  mutate(., state_lowcase = tolower(state)) %>% 
+  ggplot(.,) +
+geom_map(map =map, aes(map_id=state_lowcase, fill=no_surveyees), color='gray') + expand_limits(x=map$long, y=map$lat) + scale_fill_continuous(high="red", low="white") +
+theme_bw() +
+theme(panel.grid.major = element_blank(),
+panel.background = element_blank(),
+axis.text=element_blank(), axis.ticks=element_blank(), axis.title=element_blank(), legend.position = c(0.90,0.25), legend.background=element_rect(fill="white", colour="white") ) + coord_map('mercator') +
+labs(title='Number of Respondents with Mental Health Illness') +
+guides(fill=guide_legend(title= "Respondents"))
+
+```
+```{r}
+# Company Size
+tech.health %>% 
+  group_by(., no_employees) %>% 
+  summarise(., n = n()) %>%
+  arrange(., n) %>% ggplot(., aes(x = no_employees, y = n)) + geom_bar(aes(fill = no_employees), stat = 'identity') + ggtitle('Company Size')
+
+```     
+
+```{r}
+# Does the company take mental health seriously? 
+# Does the company address mental health issues and provide mental health benefits and resources?
+# How does it differ among the size of the company?
+# How does it differ among the type of company? Tech vs nontech company?
+library(reshape2)
+
+resources.summary <- tech.health %>% 
+  summarise(., Benefits = sum(mental_health_benefits == "Yes")/nrow(tech.health)*100,
+            Resources = sum(resources == "Yes")/nrow(tech.health)*100,
+            Discussed = sum(mental_discussed == "Yes")/nrow(tech.health)*100,
+            Anonimity = sum(anonymity == "Yes")/nrow(tech.health)*100
+            ) 
+resources.summary <- as.data.frame(t(resources.summary))
+resources.summary<- resources.summary %>% rownames_to_column("mental.resources")
+resources.summary <- rename(resources.summary, percent.yes = "V1")
+resources.summary %>%  
+  ggplot(., aes(x = mental.resources, y = percent.yes)) + 
+  geom_bar(aes(fill = mental.resources), stat = "identity") + 
+  ggtitle("Mental Health Resources") +
+  theme_bw() +
+  xlab("") +
+  ylab("Percent") +
+  theme( axis.ticks=element_blank()) +
+  theme(legend.position = "none")
+
+
+
+
+```
+
+```{r}
+# Do you think your company takes mental health as seriously as physical health?
+tech.health %>% ggplot(., aes(x='', fill=mental_vs_physical)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Mental vs Physical Health")
+
+tech.health
+
+```
+
+```{r} 
+# How many are aware of their mental health issues and seek treatment
+ggplot(data = tech.health, aes(x='', fill=family_history)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Family History")
+
+ggplot(data = tech.health, aes(x=family_history, fill=family_history)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#339999", "#eda84e", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+```
+
+```{r}
+colnames(tech.health)
+ggplot(data = tech.health, aes(x=mental_past, fill=mental_past)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#eda84e","#339999", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+```
+
+```{r}
+ggplot(data = tech.health, aes(x=mental_past, fill=mental_past)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#eda84e","#339999", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+
+
+```
+
+```{r}
+ggplot(data = tech.health, aes(x=mental_diagnosed, fill=mental_diagnosed)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#eda84e","#339999", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+
+```
+
+```{r}
+tech.health
+# tech.health %>%  
+#   summarise(., percent = percent(sum(sought_treatment)/nrow(tech.health)))
+
+  
+ggplot(data = tech.health, aes(x=sought_treatment, fill=sought_treatment)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#eda84e","#339999", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+```
+```{r}
+tech.health
+ggplot(data = tech.health, aes(x='', fill = interfere_treated)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Interfere with Work if Not Treated")
+```
+```{r}
+ggplot(data = tech.health, aes(x='', fill = interfere_not_treated)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Interfere with Work if Treated")
+```
+
+```{r}
+colnames(tech.health)
+ggplot(data = tech.health, aes(x='', fill = coworkers)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Share with Your Coworkers")
+```
+
+```{r}
+ggplot(data = tech.health, aes(x='', fill = supervisors)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0) + ggtitle("Share with Your Supervisors")
+```
+
+```{r}
+ggplot(data = tech.health, aes(x='', fill = mental_health_consequence)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0)
+```
+
+```{r}
+ggplot(data = tech.health, aes(x='', fill = mental_interview)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0)
+```
+
+```{r}
+ggplot(data = tech.health, aes(x='', fill = physical_interview)) + geom_bar(position = "fill") + coord_polar(theta = "y", start = 0)
+
+```
+
+```{r}
+
+colnames(tech.health)
+ggplot(data = tech.health, aes(x=mental_hurt_career, fill=mental_hurt_career)) + 
+  geom_bar(aes(fill = gender)) + 
+  scale_fill_manual(values=c("#FF9966", "#339999", "#003366")) +
+  theme_bw()
+
+ggplot(data = tech.health, aes(x=mental_hurt_career, fill=mental_hurt_career)) + 
+  geom_bar() + 
+  scale_fill_manual(values=c("#339999", "#eda84e", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+
+```
+
+```{r}
+tech.health %>% filter(country == "United Kingdom" | country == "Canada") %>% 
+  group_by(country) %>%
+  ggplot(., aes(x = country)) + 
+  geom_bar(aes(fill = mental_hurt_career)) + 
+  scale_fill_manual(values=c("#339999", "#eda84e", "#003366", "#CC6600", "#FFCC99")) +
+  theme_bw()
+
+# tech.health %>% filter(., country == "United States of America" | country == "Canada") %>% 
+#   group_by(., country) %>% 
+#   mutate(., responsePer1 = sum(mental_hurt_career)/length(country == "Canada")) %>% 
+#   ggplot(., aes(x = '', y = responsePer1)) + 
+#   geom_bar(aes(fill = mental_hurt_career), position = "dodge", stat = "identity") + 
+#   facet_wrap(~country) +
+#   scale_fill_manual(values=c("#339999", "#eda84e", "#003366", "#CC6600", "#FFCC99"))
+```
+```{r}
+tech.health %>% 
+            filter(., no_employees == "1-5") %>% 
+            ggplot(., aes(x = no_employees)) +
+            geom_bar(aes(fill = mental_hurt_career), position = "dodge") + 
+            scale_fill_manual(values=c("#99CC00", "#339999", "#FF9966", "#003366", "#FFCC99")) +
+            theme_bw()
+colnames(tech.health)
+
+```
+
+```{r}
+tech.health %>% 
+  filter(., age_group == "25-34") %>% 
+  ggplot(., aes(x = age_group)) +
+            geom_bar(aes(fill = mental_hurt_career), position = "dodge") + 
+            scale_fill_manual(name = "", values = c("#003366", "#339999", "#FF9966", "#99CC66","#FFCC99")) +
+            xlab("") +
+            #theme(axis.text.x = element_blank(), axis.ticks = element_blank()) +
+            # axis.ticks = element_blank() +
+            ylab("Number of Participants") +
+            theme_bw()
+```
+```{r}
+library(scales)
+
+pie.chart <- tech.health %>%
+  group_by(., mental_past) %>% 
+  count() %>% 
+  ungroup() %>% 
+  mutate(per=`n`/sum(`n`)) %>% 
+  arrange(desc(per))
+pie.chart$label <- percent(pie.chart$per)
+ggplot(data=pie.chart) +
+  geom_bar(aes(x="", y=per, fill=mental_past), stat="identity") +
+  coord_polar("y", start=0)+
+  scale_fill_manual(values = c("#99CC66", "#339999", "#FF9966")) +
+  theme_void()+
+  theme(legend.position = "none") +
+  geom_text(aes(x=1, y = cumsum(per) - per/2, label=label), size=4.5)
+
+
+pie.chart
+```
+
+```{r}
+tech.health %>% 
+        filter(., country ==  "United States of America"  | country == "Canada" | country == "Australia") %>%
+  group_by(., country, mental_past) %>% 
+  count() %>% 
+  group_by(country) %>% 
+  mutate(per= round(n/sum(n)*100,2)) %>% 
+  ggplot(., aes(x=country, y=per)) +
+  geom_bar(aes(fill=mental_past), stat="identity") +
+  scale_fill_manual(name = "", values = c("#003366", "#339999", "#FF9966", "#99CC66","#FFCC99")) +
+  coord_cartesian(ylim = c(0, 100), expand = FALSE) +
+  theme_bw() +
+  xlab("") +
+  ylab("Percent") +
+  guides(fill=guide_legend(title=""))
+
+# tech.health %>%
+#   filter(.,
+#          country ==  "United States of America"  |
+#            country == "Canada" |
+#            country == "Australia") %>% group_by(., country, mental_past) %>%
+#   summarise(n = n())
+  #group_by(country) %>%
+  #utate(sum(n))
+  
+  
+
+```
+```{r}
+colnames(tech.health)
+sum(tech.health$mental_vs_physical == 'No Response')
+```

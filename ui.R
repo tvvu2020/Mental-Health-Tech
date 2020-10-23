@@ -27,7 +27,7 @@ dashboardPage(
                 p(
                     'Mental health disorders are one of the most burdensome health concerns in the United States. According
                 to the CDC, 1 in 5 adults in the U.S. reported having mental illness in 2016. Mental disorders such
-                as depression are linked to higher rates of disibility and unemployment. In fact, "depression
+                as depression are linked to higher rates of disability and unemployment. In fact, "depression
                 interferes with a person’s ability to complete physical job tasks about 20% of the time and reduces
                 cognitive performance about 35% of the time." Globally, according to the WHO, about 264 million 
                 people suffer from depression. WHO led a study on mental health in the workplace, and discovered that 
@@ -51,24 +51,24 @@ dashboardPage(
                 p(
                     'This app was designed to allow you to visualize and answer the following questions regarding mental
                   health in the tech industry: Do they talk openly about mental health in the workplace? Do they provide
-                  the necessary resources that may help their employees understand mental health disorders, and 
-                  how their employees can find help and support? Do they provide medical benefits for mental health disorders?
-                  Do they take mental health as seriously as physical health?',
+                  resources about mental health? Do they provide medical benefits for mental health disorders?
+                  Do they take mental health as seriously as physical health? And overall what is the sentiment with 
+                  mental health in the workplace among the respondents.',
                     style = 'font-size:16px'
                 ),
                 p(
-                    strong('Respondents Demographics: '),  'to explore the overall demographics of the survey respondents.',
+                    strong('Respondents Demographics: '),  'to explore the demographics of the survey respondents.',
                     style = 'font-size:16px'
                 ),
                 p(
-                    strong('Employer Support: '), 'to visualize how the tech industry responds to mental health issues
-                    in the workplace.',
+                    strong('Employer Support: '), 'to visualize the overall support from employers including formal open discussion,
+                    resources, anonymity, and medical benefits for mental health illnesses',
                     style = 'font-size:16px'
                 ),
                 p(
                     strong('Survey Questions, Survey Questions By Age, Survey Questions By Country, and Survey Questions By Company Size: '),
-                    'are tabs that allow you to visualize how certain group of respondents deal with their mental health 
-                    issues in the workplace',
+                    'are tabs that allow you to visualize the attitude towards mental health among the respondents grouped by their
+                    age, their country of origin, and their company size.',
                     style = 'font-size:16px'
                 )
                 ),
@@ -116,7 +116,7 @@ dashboardPage(
                            ),
             hr(),
             p(
-                '59% said they sought treatment from a mental health professional. Amd 50% was
+                '59% said they sought treatment from a mental health professional. And 50% was
                 diagnosed with a mental health condition by a medical professional.',
                 style = 'font-size:16px'),
             fluidRow(

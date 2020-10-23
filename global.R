@@ -9,7 +9,7 @@ library(scales)
 library(RColorBrewer)
 library(maps)
 library(reshape2)
-
+library(rsconnect)
 
 tech.health2016 <- read.csv("Tech_Mental_Health2016.csv")
 #na.strings = c("", "NA")
@@ -56,7 +56,6 @@ tech.health <- tech.health2016
 # Filter age greater than or equal to 14 and less than or equal to 80
 tech.health <- tech.health %>% filter(., age >= 14 & age <= 80 )
 
-
 # Relabel gender for consistency
 # Change first letter to upper in gender
 tech.health$gender <- str_to_title(tech.health$gender)
@@ -77,16 +76,30 @@ tech.health <- tech.health %>%
          )
   )
 
+# Are there any NULL, NA, or empty string in the following survey questions
+# needed for tech industry assessment
+sum(is.na(tech.health$mental_vs_physical))
+sum(is.na(tech.health$mental_health_benefits))
+sum(is.na(tech.health$mental_discussed))
+sum(is.na(tech.health$anonymity))
+sum(is.na(tech.health$resources))
+
+sum(is.null(tech.health$mental_vs_physical))
+sum(is.null(tech.health$mental_health_benefits))
+sum(is.null(tech.health$mental_discussed))
+sum(is.null(tech.health$anonymity))
+sum(is.null(tech.health$resources))
+
 # Convert blanks to "No Response"
-tech.health <- tech.health %>% 
+tech.health <- tech.health %>%
   mutate(.,
          mental_vs_physical = ifelse(mental_vs_physical=='', 'No Response', mental_vs_physical),
          mental_health_benefits = ifelse(mental_health_benefits=='', 'No Response', mental_health_benefits),
          mental_discussed = ifelse(mental_discussed=='', 'No Response', mental_discussed),
          resources = ifelse(resources =='', 'No Response', resources),
          anonymity = ifelse(anonymity=='', 'No Response', anonymity),
-         mental_diagnosed = ifelse(mental_diagnosed=='', 'No Response', mental_diagnosed),      
-         mental_past = ifelse(mental_past=='', 'No Response', mental_past),   
+         mental_diagnosed = ifelse(mental_diagnosed=='', 'No Response', mental_diagnosed),
+         mental_past = ifelse(mental_past=='', 'No Response', mental_past),
          mental_current = ifelse(mental_current=='', 'No Response', mental_current),
          mental_health_consequence = ifelse(mental_health_consequence=='', 'No Response', mental_health_consequence),
          physical_health_consequence = ifelse(physical_health_consequence=='', 'No Response', physical_health_consequence),
@@ -94,10 +107,6 @@ tech.health <- tech.health %>%
          supervisors = ifelse(supervisors=='', 'No Response', supervisors),
          no_employees = ifelse(no_employees=='', 'No Response', no_employees),
          age = ifelse(age=='', 'No Response', age))
-
-
-
-
 
 # Convert 1's and 0's to "Yes" or "No"
 tech.health <- tech.health %>%
@@ -117,8 +126,8 @@ tech.health <- tech.health %>%
   )
 
 # Create new column to group age
-tech.health <- tech.health %>% 
-  mutate(., 
+tech.health <- tech.health %>%
+  mutate(.,
          age_group = case_when(
            (age < 24) ~ "24 or younger",
            (age >= 25 & age < 35) ~ "25-34",
@@ -126,15 +135,6 @@ tech.health <- tech.health %>%
            (age >= 45 & age < 55) ~ "45-54",
            (age >= 55) ~ "55 or older"
   ))
-
-
-grouped.df <- tech.health %>%
-  group_by(country) %>% 
-  summarise(ncountry = n()) %>% 
-  ungroup()
-
-tech.health <- tech.health %>% inner_join(grouped.df, by = 'country') 
-print(head(tech.health))
 
 # List of questions user can choose from 
 question.choices = list(
@@ -190,6 +190,49 @@ final.gender.graph <- ggplot(data = gender.df, aes(ymax=ymax, ymin=ymin, xmax=4,
 return(final.gender.graph)
 }
 
+# Create chart for age distribution
+age.graph <- function(df){
+  ggplot(data = tech.health, aes(x = gender, y = age)) + 
+    geom_boxplot() +
+    scale_fill_manual(values = c("#003366", "#339999","#99CC66")) +
+    coord_cartesian(ylim = c(0, 80)) +  
+    theme_bw() +
+    xlab("") +
+    ylab("Age") +
+    theme(legend.position = "none") +
+    ggtitle(("Age Distribution"))
+}
+
+# Create chart for countries distribution
+countries.graph <- function(df){
+  df %>% 
+    group_by(., country) %>% 
+    summarise(.,representation = n()) %>% 
+    filter(., representation >= 30) %>% 
+    ggplot(., aes(x=reorder(country, desc(-representation)), y=representation)) +
+    geom_bar(fill='#3C72BD', stat='identity', colour='#3C72BD') + 
+    theme_bw() +
+    theme(legend.position = "none") +
+    xlab("Country") +
+    ylab("Number of Respondents") +
+    ggtitle("Respondents from Each Country") 
+}
+
+# Create chart for states distribution
+states.graph <- function(df){
+  df %>% 
+    filter(., country == "United States of America") %>% 
+    group_by(., state) %>% 
+    summarise(., no_surveyees = n()) %>% 
+    filter(.,no_surveyees >= 30) %>% 
+    ggplot(., aes(x=no_surveyees, y=reorder(state, desc(-no_surveyees)))) + 
+    geom_bar(fill='#3C72BD', stat='identity', colour='#3C72BD') + 
+    theme_bw() +
+    theme(legend.position = "none") +
+    xlab("Number of Respondents") +
+    ylab("State") +
+    ggtitle("Respondents from Each State") 
+}
 
 # Function to chart for mental health issues in the past
 mentalPast <- function(df){
@@ -234,7 +277,6 @@ mentalCurrent <- function(df){
 # Function to chart for if they were diagnosed by a health professional
 mentalDiagnosed <- function(df){
   pie.chart <- df %>%
-    #filter(., sought_treatment == "Yes") %>% 
     group_by(., mental_diagnosed) %>%
     count() %>%
     ungroup() %>%
@@ -272,7 +314,7 @@ mentalTreatment <- function(df){
     ggtitle("Have you ever sought treatment for a mental health issue from a mental health professional?")
 }
 
-# Creat a chart that evaluates if tech industry offer the nessary support
+# Create a chart to evaluate support offered in tech industry
 # Compare different resources for mental health
 total.resources <- function(df){
   resources.summary <- tech.health %>% 
